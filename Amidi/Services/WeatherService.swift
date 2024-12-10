@@ -1,0 +1,27 @@
+import Foundation
+
+class WeatherService: ObservableObject {
+    private let latitude = 42.2679
+    private let longitude = 42.6946
+    
+    @Published var currentWeather: WeatherResponse?
+    @Published var error: Error?
+    
+    func fetchWeather() async {
+        let urlString = "https://api.open-meteo.com/v1/forecast?latitude=\(latitude)&longitude=\(longitude)&current=temperature_2m,wind_speed_10m,weather_code,wind_direction_10m&wind_speed_unit=ms"
+        
+        guard let url = URL(string: urlString) else { return }
+        
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            let weather = try JSONDecoder().decode(WeatherResponse.self, from: data)
+            DispatchQueue.main.async {
+                self.currentWeather = weather
+            }
+        } catch {
+            DispatchQueue.main.async {
+                self.error = error
+            }
+        }
+    }
+} 
