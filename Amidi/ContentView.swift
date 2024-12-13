@@ -89,6 +89,27 @@ struct WeatherView: View {
                         .stroke(Color.gray.opacity(0.3), lineWidth: 2)
                         .frame(width: diameter, height: diameter)
                     
+                    // Иконка погоды на круге
+                    if let weather = weather {
+                        let iconPosition = getIconPosition(currentTime: currentTime, radius: diameter * 0.5, center: center)
+                 
+                        WeatherIcon(condition: weather.current.weatherCode)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 0)
+                                    .stroke(Color.red, lineWidth: 0)
+                            )
+                            .font(.system(size: diameter * 0.25))
+                            .background(
+                                Circle()
+                                    .fill(Color.blue.opacity(0.1))
+                                    .frame(width: diameter * 0.25, height: diameter * 0.25)
+                            )
+                            .position(iconPosition)
+                        
+                        
+                    }
+                    
+                    // Температура в центре
                     VStack {
                         // Температура
                         if let weather = weather {
@@ -97,58 +118,27 @@ struct WeatherView: View {
                         }
                     }
                     
-                    // Иконка погоды на круге
-                    if let weather = weather {
-                        let iconPosition = getIconPosition(currentTime: currentTime, radius: diameter * 0.4, center: center)
-                        let hour = Calendar.current.component(.hour, from: currentTime)
-                        let minute = Calendar.current.component(.minute, from: currentTime)
-                        let angle = getAngle(hour: hour, minute: minute)
-                        
-                        // Отладочный круг для визуализации пути иконки
-                        Circle()
-                            .stroke(Color.red.opacity(0.3), lineWidth: 1)
-                            .frame(width: diameter * 0.8, height: diameter * 0.8)
-                        
-                        // Отладочная информация
-                        VStack {
-                            Text("Weather Code: \(weather.current.weatherCode)")
-                            Text("Hour: \(hour)")
-                            Text("Minute: \(minute)")
-                            Text("Radius: \(Int(diameter * 0.4))")
-                            Text("Center: x:\(Int(center.x)), y:\(Int(center.y))")
-                            Text("Raw Position: x:\(Int(diameter * 0.4 * cos(angle))), y:\(Int(diameter * 0.4 * sin(angle)))")
-                            Text("Final Position: x:\(Int(iconPosition.x)), y:\(Int(iconPosition.y))")
-                            Text("Angle: \(Int(angle * 180 / .pi))°")
+                    VStack {
+                        Spacer()
+                        Spacer()
+                        Spacer()
+                        Spacer()
+                        // Информация о ветре
+                        if let weather = weather {
+                            VStack(spacing: 10) {
+                                // Флюгер
+                                Image(systemName: "arrow.up")
+                                    .font(.system(size: 32))
+                                    .rotationEffect(.degrees(weather.current.windDirection10m))
+                                
+                                Text("\(String(format: "%.1f", weather.current.windSpeed10m)) м/с")
+                                    .font(.title2)
+                                Text(getBeaufortScale(speed: weather.current.windSpeed10m))
+                                    .font(.caption)
+                            }
+                            .padding(.top, 20)
                         }
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                        .position(x: geometry.size.width / 2, y: 50)
-                        
-                        WeatherIcon(condition: weather.current.weatherCode)
-                            .font(.system(size: diameter * 0.25))
-                            .background(
-                                Circle()
-                                    .fill(Color.blue.opacity(0.1))
-                                    .frame(width: diameter * 0.3, height: diameter * 0.3)
-                            )
-                            .position(iconPosition)
                     }
-                }
-                
-                // Информация о ветре
-                if let weather = weather {
-                    VStack(spacing: 10) {
-                        // Флюгер
-                        Image(systemName: "arrow.up")
-                            .font(.system(size: 32))
-                            .rotationEffect(.degrees(weather.current.windDirection10m))
-                        
-                        Text("\(String(format: "%.1f", weather.current.windSpeed10m)) м/с")
-                            .font(.title2)
-                        Text(getBeaufortScale(speed: weather.current.windSpeed10m))
-                            .font(.caption)
-                    }
-                    .padding(.top, 20)
                 }
             }
             .position(center)
@@ -172,10 +162,10 @@ struct WeatherView: View {
     
     private func getBeaufortScale(speed: Double) -> String {
         switch speed {
-        case 0...0.2: return "Штиль"
-        case 0.3...1.5: return "Тихий"
-        case 1.6...3.3: return "Лёгкий"
-        case 3.4...5.4: return "Слабый"
+        case 0...0.5: return "Штиль"
+        case 0.6...1.5: return "Тихий"
+        case 1.6...3.2: return "Лёгкий"
+        case 3.3...5.4: return "Слабый"
         case 5.5...7.9: return "Умеренный"
         case 8.0...10.7: return "Свежий"
         case 10.8...13.8: return "Сильный"

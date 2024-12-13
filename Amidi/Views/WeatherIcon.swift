@@ -5,8 +5,6 @@ struct WeatherIcon: View {
     
     var body: some View {
         let symbol = getWeatherSymbol()
-        print("WeatherIcon: condition=\(condition), symbol=\(symbol)")
-        
         return Image(systemName: symbol)
             .font(.system(size: 24))
             .foregroundColor(.blue)
