@@ -94,14 +94,11 @@ struct WeatherView: View {
                         let iconPosition = getIconPosition(currentTime: currentTime, radius: diameter * 0.5, center: center)
                  
                         WeatherIcon(condition: weather.current.weatherCode)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 0)
-                                    .stroke(Color.red, lineWidth: 0)
-                            )
+                            .foregroundColor(.white)
                             .font(.system(size: diameter * 0.25))
                             .background(
                                 Circle()
-                                    .fill(Color.blue.opacity(0.1))
+                                    .fill(Color.gray.opacity(0.7))
                                     .frame(width: diameter * 0.25, height: diameter * 0.25)
                             )
                             .position(iconPosition)
@@ -113,12 +110,17 @@ struct WeatherView: View {
                     VStack {
                         // Температура
                         if let weather = weather {
-                            Text(String(format: "%.1f°", weather.current.temperature2m))
-                                .font(.system(size: diameter * 0.24))
+                            Text(String(format: "%+.1f°", weather.current.temperature2m))
+                                .font(.system(size: diameter * 0.25))
                         }
                     }
                     
                     VStack {
+                        Spacer()
+                        HStack {
+                            Image(systemName: "location.fill")
+                            Text("Кутаиси")
+                        }
                         Spacer()
                         Spacer()
                         Spacer()
@@ -127,12 +129,16 @@ struct WeatherView: View {
                         if let weather = weather {
                             VStack(spacing: 10) {
                                 // Флюгер
-                                Image(systemName: "arrow.up")
+                                Image(systemName: "arrowshape.up")
                                     .font(.system(size: 32))
                                     .rotationEffect(.degrees(weather.current.windDirection10m))
                                 
-                                Text("\(String(format: "%.1f", weather.current.windSpeed10m)) м/с")
-                                    .font(.title2)
+                                HStack {
+                                    Image(systemName: "wind")
+                                    Text("\(String(format: "%.1f", weather.current.windSpeed10m)) м/с")
+                                }
+                                .font(.title2)
+                                
                                 Text(getBeaufortScale(speed: weather.current.windSpeed10m))
                                     .font(.caption)
                             }
