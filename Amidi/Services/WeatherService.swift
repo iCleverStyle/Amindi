@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 class WeatherService: ObservableObject {
     private let latitude = 42.2679
     private let longitude = 42.6946
@@ -15,13 +16,9 @@ class WeatherService: ObservableObject {
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
             let weather = try JSONDecoder().decode(WeatherResponse.self, from: data)
-            DispatchQueue.main.async {
-                self.currentWeather = weather
-            }
+            self.currentWeather = weather
         } catch {
-            DispatchQueue.main.async {
-                self.error = error
-            }
+            self.error = error
         }
     }
 } 

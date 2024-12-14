@@ -12,6 +12,7 @@ struct ContentView: View {
     @State private var currentTime = Date()
     @State private var isLoading = false
     @State private var showWeather = false
+    @State private var rotation = 0.0
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     var body: some View {
@@ -26,20 +27,38 @@ struct ContentView: View {
                 WeatherView(weather: weatherService.currentWeather, currentTime: currentTime)
             } else {
                 Button(action: fetchWeatherWithAnimation) {
-                    Circle()
-                        .fill(Color.blue.opacity(0.1))
-                        .frame(width: 200, height: 200)
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(Color(uiColor: .systemGray6))
+                        .frame(width: 300, height: 120)
                         .overlay(
-                            VStack {
-                                Image(systemName: "cloud.sun")
-                                    .font(.system(size: 40))
-                                    .foregroundColor(.blue)
-                                Text("Проверить погоду")
-                                    .foregroundColor(.blue)
-                                    .font(.headline)
+                            HStack(spacing: 16) {
+                                VStack(alignment: .leading) {
+                                    Text("Проверить погоду")
+                                        .foregroundColor(.gray)
+                                        .font(.subheadline)
+                                    Text("в Кутаиси")
+                                        .font(.system(size: 34, weight: .medium))
+                                        .foregroundColor(.primary)
+                                }
+                                Spacer()
+                                Image(systemName: "arrow.trianglehead.2.clockwise")
+                                    .symbolRenderingMode(.hierarchical)
+                                    .foregroundStyle(.yellow)
+                                    .font(.system(size: 50))
+                                    .rotationEffect(.degrees(rotation))
+                                    .onAppear {
+                                        withAnimation(
+                                            .linear(duration: 3)
+                                            .repeatForever(autoreverses: false)
+                                        ) {
+                                            rotation = 360
+                                        }
+                                    }
                             }
+                            .padding()
                         )
                 }
+                .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
             }
         }
         .onReceive(timer) { _ in
@@ -50,19 +69,15 @@ struct ContentView: View {
     private func fetchWeatherWithAnimation() {
         isLoading = true
         
-        // Имитация загрузки в течение 1 секунды
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            Task {
-                await weatherService.fetchWeather()
-                isLoading = false
-                showWeather = true
-                
-                // Скрыть данные через 1 минуту
-                DispatchQueue.main.asyncAfter(deadline: .now() + 60) {
-                    withAnimation {
-                        showWeather = false
-                    }
-                }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1))
+            await weatherService.fetchWeather()
+            isLoading = false
+            showWeather = true
+            
+            try? await Task.sleep(for: .seconds(60))
+            withAnimation {
+                showWeather = false
             }
         }
     }
@@ -98,7 +113,7 @@ struct WeatherView: View {
                             .font(.system(size: diameter * 0.25))
                             .background(
                                 Circle()
-                                    .fill(Color.gray.opacity(0.7))
+                                    .fill(Color.blue.opacity(0.5))
                                     .frame(width: diameter * 0.25, height: diameter * 0.25)
                             )
                             .position(iconPosition)
@@ -135,6 +150,7 @@ struct WeatherView: View {
                                 
                                 HStack {
                                     Image(systemName: "wind")
+                                        .rotationEffect(.degrees(weather.current.windDirection10m - 90))
                                     Text("\(String(format: "%.1f", weather.current.windSpeed10m)) м/с")
                                 }
                                 .font(.title2)
@@ -170,7 +186,7 @@ struct WeatherView: View {
         switch speed {
         case 0...0.5: return "Штиль"
         case 0.6...1.5: return "Тихий"
-        case 1.6...3.2: return "Лёгкий"
+        case 1.6...3.2: return "Л��гкий"
         case 3.3...5.4: return "Слабый"
         case 5.5...7.9: return "Умеренный"
         case 8.0...10.7: return "Свежий"
