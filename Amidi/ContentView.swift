@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct ContentView: View {
+    @Environment(\.colorScheme) var colorScheme
     @StateObject private var weatherService = WeatherService()
     @State private var currentTime = Date()
     @State private var isLoading = false
@@ -84,6 +85,7 @@ struct ContentView: View {
 }
 
 struct WeatherView: View {
+    @Environment(\.colorScheme) private var colorScheme
     let weather: WeatherResponse?
     let currentTime: Date
     
@@ -143,22 +145,39 @@ struct WeatherView: View {
                         // Информация о ветре
                         if let weather = weather {
                             VStack(spacing: 10) {
-                                // Флюгер
-                                Image(systemName: "arrowshape.up")
-                                    .font(.system(size: 32))
-                                    .rotationEffect(.degrees(weather.current.windDirection10m))
-                                
-                                HStack {
-                                    Image(systemName: "wind")
-                                        .rotationEffect(.degrees(weather.current.windDirection10m - 90))
-                                    Text("\(String(format: "%.1f", weather.current.windSpeed10m)) м/с")
+                                ZStack {
+                                    // Фоновая карта
+                                        
+                                    Image("Georgia Vector Map")
+                                        .resizable()
+                                        .renderingMode(.template)
+                                        .scaledToFit()
+                                        .frame(width: diameter * 0.95)
+                                        .foregroundStyle(Color(colorScheme == .dark ? 
+                                            .white.opacity(1) :
+                                            .black.opacity(0.5)))
+                                        .padding(.bottom, diameter * 0.05)
+                                    
+                                    VStack(spacing: 10) {
+                                        // Флюгер
+                                        Image(systemName: "arrowshape.up")
+                                            .font(.system(size: 32))
+                                            .rotationEffect(.degrees(weather.current.windDirection10m))
+                                        
+                                        HStack {
+                                            Image(systemName: "wind")
+                                                .rotationEffect(.degrees(weather.current.windDirection10m - 90))
+                                            Text("\(String(format: "%.1f", weather.current.windSpeed10m)) м/с")
+                                        }
+                                        .font(.title2)
+                                        
+                                        Text(getBeaufortScale(speed: weather.current.windSpeed10m))
+                                            .font(.caption)
+                                    }
+                                    .padding(.top, 60)
                                 }
-                                .font(.title2)
-                                
-                                Text(getBeaufortScale(speed: weather.current.windSpeed10m))
-                                    .font(.caption)
+                                .padding(.top, 20)
                             }
-                            .padding(.top, 20)
                         }
                     }
                 }
