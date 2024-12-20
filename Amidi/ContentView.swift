@@ -186,7 +186,7 @@ struct WeatherView: View {
         switch speed {
         case 0...0.5: return "Штиль"
         case 0.6...1.5: return "Тихий"
-        case 1.6...3.2: return "Л��гкий"
+        case 1.6...3.2: return "Лёгкий"
         case 3.3...5.4: return "Слабый"
         case 5.5...7.9: return "Умеренный"
         case 8.0...10.7: return "Свежий"

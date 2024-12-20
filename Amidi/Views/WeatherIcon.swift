@@ -9,8 +9,8 @@ struct WeatherIcon: View {
         return Image(systemName: symbol)
             .symbolRenderingMode(.palette)
             .foregroundStyle(
-                .white, // первичный цвет (для солнца/луны)
-                .yellow  // вторичный цвет (для облаков)
+                .yellow,
+                .white
             )
             .font(.system(size: 36))
     }
