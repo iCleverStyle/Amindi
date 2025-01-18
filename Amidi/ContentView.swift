@@ -124,6 +124,33 @@ struct WeatherView: View {
         )
     }
     
+    private func getSunPosition(for date: Date, radius: CGFloat, center: CGPoint) -> CGPoint {
+        let calendar = Calendar.current
+        let hour = calendar.component(.hour, from: date)
+        let minute = calendar.component(.minute, from: date)
+        let angle = getAngle(hour: hour, minute: minute)
+        
+        let x = center.x + radius * cos(angle)
+        let y = center.y + radius * sin(angle)
+        
+        return CGPoint(x: x, y: y)
+    }
+    
+    private func parseTime(_ timeString: String) -> Date? {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm"
+        formatter.timeZone = TimeZone.current // или TimeZone(identifier: "Asia/Tbilisi")
+        let date = formatter.date(from: timeString)
+        print("Parsing time string: \(timeString), result: \(String(describing: date))")
+        return date
+    }
+    
+    private func isNightTime(sunrise: Date, sunset: Date, current: Date) -> Bool {
+        let result = current < sunrise || current > sunset
+        print("Checking night time - sunrise: \(sunrise), sunset: \(sunset), current: \(current), isNight: \(result)")
+        return result
+    }
+    
     var body: some View {
         GeometryReader { geometry in
             let diameter = min(geometry.size.width, geometry.size.height) * 0.8
@@ -182,14 +209,34 @@ struct WeatherView: View {
                             ForecastIcon(temperature: forecast9h.temperature, condition: forecast9h.code)
                                 .position(iconPosition)
                         }
-                    }
-                    
-                    // Температура в центре
-                    VStack {
-                        // Температура
-                        if let weather = weather {
+                        
+                        // Температура в центре
+                        VStack {
                             Text(String(format: "%+.1f°", weather.current.temperature2m))
                                 .font(.system(size: diameter * 0.25))
+                        }
+                        
+                        // Индикатор восхода/захода солнца
+                        if let sunrise = parseTime(weather.daily.sunrise[0]),
+                           let sunset = parseTime(weather.daily.sunset[0]) {
+                            
+                            let isNight = isNightTime(sunrise: sunrise, sunset: sunset, current: currentTime)
+                            let targetTime = isNight ? sunrise : sunset
+                            let position = getSunPosition(for: targetTime, radius: diameter * 0.5, center: center)
+                            
+                            ZStack {
+                                Circle()
+                                    .fill(Color(UIColor.systemBackground))
+                                    .frame(width: 40, height: 40)
+                                    .shadow(color: .black.opacity(0.1), radius: 2)
+                                
+                                Image(systemName: isNight ? "sunrise.fill" : "sunset.fill")
+                                    .symbolRenderingMode(.palette)
+                                    .foregroundStyle(.orange, .yellow)
+                                    .font(.system(size: 20))
+                            }
+                            .position(position)
+                            .zIndex(1)
                         }
                     }
                     

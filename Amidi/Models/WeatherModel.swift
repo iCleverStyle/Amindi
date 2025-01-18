@@ -1,6 +1,7 @@
 struct WeatherResponse: Codable {
     let current: Current
     let hourly: Hourly
+    let daily: Daily
     
     struct Current: Codable {
         let temperature2m: Double
@@ -25,6 +26,16 @@ struct WeatherResponse: Codable {
             case time
             case temperature2m = "temperature_2m"
             case weatherCode = "weather_code"
+        }
+    }
+    
+    struct Daily: Codable {
+        let sunrise: [String]
+        let sunset: [String]
+        
+        enum CodingKeys: String, CodingKey {
+            case sunrise
+            case sunset
         }
     }
 } 
