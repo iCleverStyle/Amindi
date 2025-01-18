@@ -35,57 +35,55 @@ struct WeatherIcon: View {
         let colors: (primary: Color, secondary: Color)
         
         switch condition {
-        case 0:
+        case 0: // Чистое небо
             baseName = colorScheme == .dark ? "moon.stars" : "sun.max"
             colors = colorScheme == .dark ? 
                 (.yellow, .white) :
                 (.yellow, .orange)
             
-        case 1...3:
+        case 1...3: // Переменная облачность
             baseName = colorScheme == .dark ? "cloud.moon" : "cloud.sun"
-            colors = colorScheme == .dark ?
-                (.white, .yellow) :
-                (.white, .yellow)
+            colors = (.white, .yellow)
             
-        case 45...49:
+        case 45, 48: // Туман
             baseName = "cloud.fog"
             colors = (.gray, .white)
             
-        case 50...55:
+        case 51, 53, 55: // Морось
             baseName = "cloud.drizzle"
+            colors = (.gray, .blue)
+            
+        case 56, 57: // Замерзающая морось
+            baseName = "cloud.sleet"
+            colors = (.cyan, .white)
+            
+        case 61, 63, 65: // Дождь
+            baseName = "cloud.rain"
             colors = (.blue, .gray)
             
-        case 56...59:
-            baseName = "cloud.sleet"
-            colors = (.cyan, .white)
-            
-        case 60...65:
+        case 66, 67: // Замерзающий дождь
             baseName = "cloud.rain"
+            colors = (.cyan, .cyan)
+            
+        case 71, 73, 75, 77: // Снег
+            baseName = "cloud.snow"
+            colors = (.gray, .cyan)
+            
+        case 80, 81, 82: // Ливень
+            baseName = "cloud.heavyrain"
+            colors = (.blue, .blue)
+            
+        case 85, 86: // Снежный ливень
+            baseName = "cloud.snow"
             colors = (.gray, .blue)
             
-        case 66...69:
-            baseName = "cloud.sleet"
-            colors = (.cyan, .white)
-            
-        case 70...79:
-            baseName = "cloud.snow"
-            colors = (.gray, .white)
-            
-        case 80...85:
-            baseName = "cloud.rain"
-            colors = (.gray, .blue)
-            
-        case 86...89:
-            baseName = "cloud.snow"
-            colors = (.white, .blue)
-            
-        case 90...95:
+        case 95: // Гроза
             baseName = "cloud.bolt"
             colors = (.gray, .yellow)
             
-        case 96...99:
+        case 96, 99: // Гроза с градом
             baseName = "cloud.bolt.rain"
-            colors = (.white, .blue)
+            colors = (.blue, .blue)
             
         default:
             baseName = "cloud"
@@ -98,19 +96,21 @@ struct WeatherIcon: View {
 
 #Preview {
     VStack(spacing: 20) {
-        WeatherIcon(condition: 0)
+        WeatherIcon(condition: 66)
         
-        WeatherIcon(
-            condition: 95,
-            primaryColor: .blue,
-            secondaryColor: .yellow,
-            isFilled: true
-        )
+        WeatherIcon(condition: 77)
         
-        WeatherIcon(condition: 55)
+        WeatherIcon(condition: 80)
         
-        WeatherIcon(condition: 61)
+        WeatherIcon(condition: 85)
         
         WeatherIcon(condition: 95)
+        
+        WeatherIcon(condition: 96)
+        
+        WeatherIcon(condition: 66)
+        
+        
+        
     }
 } 
