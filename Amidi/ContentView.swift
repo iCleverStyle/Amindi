@@ -98,12 +98,25 @@ struct WeatherView: View {
         let calendar = Calendar.current
         let currentHour = calendar.component(.hour, from: currentTime)
         
-        guard let currentTimeString = weather.hourly.time.firstIndex(where: { timeString in
+        // Находим индекс текущего часа
+        guard let currentTimeIndex = weather.hourly.time.firstIndex(where: { timeString in
             timeString.contains(String(format: "%02d:00", currentHour))
         }) else { return nil }
         
-        let forecastIndex = currentTimeString + hours
-        guard forecastIndex < weather.hourly.time.count else { return nil }
+        // Вычисляем индекс для прогноза
+        let forecastIndex = currentTimeIndex + hours
+        
+        // Проверяем, что индекс находится в пределах массива
+        guard forecastIndex < weather.hourly.time.count else {
+            // Если прогноз выходит за пределы текущего дня, берем данные с начала следующего дня
+            let remainingHours = hours - (weather.hourly.time.count - currentTimeIndex)
+            guard remainingHours < weather.hourly.time.count else { return nil }
+            
+            return (
+                temperature: weather.hourly.temperature2m[remainingHours],
+                code: weather.hourly.weatherCode[remainingHours]
+            )
+        }
         
         return (
             temperature: weather.hourly.temperature2m[forecastIndex],
