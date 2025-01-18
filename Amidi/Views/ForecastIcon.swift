@@ -5,17 +5,18 @@ struct ForecastIcon: View {
     let condition: Int
     
     var body: some View {
-        VStack(spacing: 4) {
-            WeatherIcon(condition: condition)
-                .font(.system(size: 24))
-            Text(String(format: "%+.1f°", temperature))
-                .font(.system(size: 12, weight: .medium))
-        }
-        .padding(8)
-        .background(
+        ZStack {
             Circle()
                 .fill(Color(UIColor.systemBackground))
                 .shadow(color: .black.opacity(0.1), radius: 4)
-        )
+                .frame(width: 70, height: 70)
+            
+            VStack(spacing: 4) {
+                WeatherIcon(condition: condition)
+                    .font(.system(size: 24))
+                Text(String(format: "%+.1f°", temperature))
+                    .font(.system(size: 12, weight: .medium))
+            }
+        }
     }
 } 

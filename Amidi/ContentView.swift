@@ -127,16 +127,27 @@ struct WeatherView: View {
                     if let weather = weather {
                         let iconPosition = getIconPosition(currentTime: currentTime, radius: diameter * 0.5, center: center)
                         
-                        WeatherIcon(condition: weather.current.weatherCode)
-                            .foregroundColor(.white)
-                            .font(.system(size: diameter * 0.25))
-                            .background(
-                                Circle()
-                                    .stroke(Color.gray.opacity(0.3), lineWidth: 2)
-                                    .fill(colorScheme == .dark ? Color.black.opacity(1) : Color.white.opacity(1))
-                                    .frame(width: diameter * 0.25, height: diameter * 0.25)
-                            )
-                            .position(iconPosition)
+                        ZStack {
+                            Circle()
+                                .fill(Color(UIColor.systemBackground))
+                                .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 2)
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.blue.opacity(0.3), lineWidth: 3)
+                                )
+                                .frame(width: 90, height: 90)
+                            
+                            ZStack {
+                                
+                                WeatherIcon(condition: weather.current.weatherCode)
+                                    .font(.system(size: 32))
+//                                Text(String(format: "%+.1f°", weather.current.temperature2m))
+//                                        .font(.system(size: 14, weight: .medium))
+//                                        .padding(.top, 60)
+                                
+                            }
+                        }
+                        .position(iconPosition)
                         
                         // Прогноз через 3 часа
                         if let forecast3h = getForecastData(weather: weather, hours: 3) {
