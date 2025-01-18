@@ -1,36 +1,26 @@
 import SwiftUI
 
 struct WeatherIcon: View {
-    @Environment(\.colorScheme) private var colorScheme
     let condition: Int
-    let primaryColor: Color?
-    let secondaryColor: Color?
-    let isFilled: Bool
-    
-    init(
-        condition: Int,
-        primaryColor: Color? = nil,
-        secondaryColor: Color? = nil,
-        isFilled: Bool = true
-    ) {
-        self.condition = condition
-        self.primaryColor = primaryColor
-        self.secondaryColor = secondaryColor
-        self.isFilled = isFilled
-    }
+    var isForecast: Bool = false
+    @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
-        let (symbol, colors) = getWeatherSymbol()
-        return Image(systemName: symbol)
+        let (baseName, colors) = getWeatherSymbol(condition: condition)
+        
+        Image(systemName: baseName)
             .symbolRenderingMode(.palette)
             .foregroundStyle(
-                primaryColor ?? colors.primary,
-                secondaryColor ?? colors.secondary
+                isForecast ? 
+                    Color.gray.opacity(0.7) :
+                    colors.0,
+                isForecast ? 
+                    Color.gray.opacity(0.5) :
+                    colors.1
             )
-            .font(.system(size: 36))
     }
     
-    private func getWeatherSymbol() -> (symbol: String, colors: (primary: Color, secondary: Color)) {
+    private func getWeatherSymbol(condition: Int) -> (symbol: String, colors: (primary: Color, secondary: Color)) {
         let baseName: String
         let colors: (primary: Color, secondary: Color)
         
@@ -90,7 +80,7 @@ struct WeatherIcon: View {
             colors = (.gray, .white)
         }
         
-        return (isFilled ? baseName + ".fill" : baseName, colors)
+        return (isForecast ? baseName + ".fill" : baseName, colors)
     }
 }
 
