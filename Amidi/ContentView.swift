@@ -94,6 +94,23 @@ struct WeatherView: View {
         return -Double.pi / 2 + 2 * Double.pi * (Double(hour12) + Double(minute) / 60) / 12
     }
     
+    private func getForecastData(weather: WeatherResponse, hours: Int) -> (temperature: Double, code: Int)? {
+        let calendar = Calendar.current
+        let currentHour = calendar.component(.hour, from: currentTime)
+        
+        guard let currentTimeString = weather.hourly.time.firstIndex(where: { timeString in
+            timeString.contains(String(format: "%02d:00", currentHour))
+        }) else { return nil }
+        
+        let forecastIndex = currentTimeString + hours
+        guard forecastIndex < weather.hourly.time.count else { return nil }
+        
+        return (
+            temperature: weather.hourly.temperature2m[forecastIndex],
+            code: weather.hourly.weatherCode[forecastIndex]
+        )
+    }
+    
     var body: some View {
         GeometryReader { geometry in
             let diameter = min(geometry.size.width, geometry.size.height) * 0.8
@@ -120,6 +137,27 @@ struct WeatherView: View {
                                     .frame(width: diameter * 0.25, height: diameter * 0.25)
                             )
                             .position(iconPosition)
+                        
+                        // Прогноз через 3 часа
+                        if let forecast3h = getForecastData(weather: weather, hours: 3) {
+                            let iconPosition = getIconPosition(currentTime: Calendar.current.date(byAdding: .hour, value: 3, to: currentTime) ?? currentTime, radius: diameter * 0.5, center: center)
+                            ForecastIcon(temperature: forecast3h.temperature, condition: forecast3h.code)
+                                .position(iconPosition)
+                        }
+                        
+                        // Прогноз через 6 часов
+                        if let forecast6h = getForecastData(weather: weather, hours: 6) {
+                            let iconPosition = getIconPosition(currentTime: Calendar.current.date(byAdding: .hour, value: 6, to: currentTime) ?? currentTime, radius: diameter * 0.5, center: center)
+                            ForecastIcon(temperature: forecast6h.temperature, condition: forecast6h.code)
+                                .position(iconPosition)
+                        }
+                        
+                        // Прогноз через 9 часов
+                        if let forecast9h = getForecastData(weather: weather, hours: 9) {
+                            let iconPosition = getIconPosition(currentTime: Calendar.current.date(byAdding: .hour, value: 9, to: currentTime) ?? currentTime, radius: diameter * 0.5, center: center)
+                            ForecastIcon(temperature: forecast9h.temperature, condition: forecast9h.code)
+                                .position(iconPosition)
+                        }
                     }
                     
                     // Температура в центре
