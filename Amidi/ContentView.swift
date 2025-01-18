@@ -109,18 +109,17 @@ struct WeatherView: View {
                     // Иконка погоды на круге
                     if let weather = weather {
                         let iconPosition = getIconPosition(currentTime: currentTime, radius: diameter * 0.5, center: center)
-                 
+                        
                         WeatherIcon(condition: weather.current.weatherCode)
                             .foregroundColor(.white)
                             .font(.system(size: diameter * 0.25))
                             .background(
                                 Circle()
-                                    .fill(Color.blue.opacity(0.5))
+                                    .stroke(Color.gray.opacity(0.3), lineWidth: 2)
+                                    .fill(colorScheme == .dark ? Color.black.opacity(1) : Color.white.opacity(1))
                                     .frame(width: diameter * 0.25, height: diameter * 0.25)
                             )
                             .position(iconPosition)
-                        
-                        
                     }
                     
                     // Температура в центре
