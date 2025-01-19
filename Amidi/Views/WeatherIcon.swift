@@ -3,7 +3,17 @@ import SwiftUI
 struct WeatherIcon: View {
     let condition: Int
     var isForecast: Bool = false
-    @Environment(\.colorScheme) var colorScheme
+    let isNightTime: Bool
+    
+    init(
+        condition: Int,
+        isForecast: Bool = false,
+        isNightTime: Bool
+    ) {
+        self.condition = condition
+        self.isForecast = isForecast
+        self.isNightTime = isNightTime
+    }
     
     var body: some View {
         let (baseName, colors) = getWeatherSymbol(condition: condition)
@@ -26,14 +36,16 @@ struct WeatherIcon: View {
         
         switch condition {
         case 0: // Чистое небо
-            baseName = colorScheme == .dark ? "moon.stars" : "sun.max"
-            colors = colorScheme == .dark ? 
+            baseName = isNightTime ? "moon.stars" : "sun.max"
+            colors = isNightTime ? 
                 (.yellow, .white) :
                 (.yellow, .orange)
             
         case 1...3: // Переменная облачность
-            baseName = colorScheme == .dark ? "cloud.moon" : "cloud.sun"
-            colors = (.white, .yellow)
+            baseName = isNightTime ? "cloud.moon" : "cloud.sun"
+            colors = isNightTime ?
+                (.white, .yellow) :
+                (.white, .yellow)
             
         case 45, 48: // Туман
             baseName = "cloud.fog"
@@ -86,21 +98,11 @@ struct WeatherIcon: View {
 
 #Preview {
     VStack(spacing: 20) {
-        WeatherIcon(condition: 66)
-        
-        WeatherIcon(condition: 77)
-        
-        WeatherIcon(condition: 80)
-        
-        WeatherIcon(condition: 85)
-        
-        WeatherIcon(condition: 95)
-        
-        WeatherIcon(condition: 96)
-        
-        WeatherIcon(condition: 66)
-        
-        
-        
+        WeatherIcon(condition: 66, isNightTime: false)
+        WeatherIcon(condition: 77, isNightTime: true)
+        WeatherIcon(condition: 80, isNightTime: false)
+        WeatherIcon(condition: 85, isNightTime: true)
+        WeatherIcon(condition: 95, isNightTime: false)
+        WeatherIcon(condition: 96, isNightTime: true)
     }
 } 

@@ -145,10 +145,13 @@ struct WeatherView: View {
         return date
     }
     
-    private func isNightTime(sunrise: Date, sunset: Date, current: Date) -> Bool {
-        let result = current < sunrise || current > sunset
-        print("Checking night time - sunrise: \(sunrise), sunset: \(sunset), current: \(current), isNight: \(result)")
-        return result
+    private func isNightTime(for date: Date) -> Bool {
+        if let weather = weather,
+           let sunrise = parseTime(weather.daily.sunrise[0]),
+           let sunset = parseTime(weather.daily.sunset[0]) {
+            return date < sunrise || date > sunset
+        }
+        return false
     }
     
     var body: some View {
@@ -179,7 +182,7 @@ struct WeatherView: View {
                             
                             ZStack {
                                 
-                                WeatherIcon(condition: weather.current.weatherCode)
+                                WeatherIcon(condition: weather.current.weatherCode, isNightTime: isNightTime(for: currentTime))
                                     .font(.system(size: 32))
 //                                Text(String(format: "%+.1f°", weather.current.temperature2m))
 //                                        .font(.system(size: 14, weight: .medium))
@@ -191,23 +194,38 @@ struct WeatherView: View {
                         
                         // Прогноз через 3 часа
                         if let forecast3h = getForecastData(weather: weather, hours: 3) {
-                            let iconPosition = getIconPosition(currentTime: Calendar.current.date(byAdding: .hour, value: 3, to: currentTime) ?? currentTime, radius: diameter * 0.5, center: center)
-                            ForecastIcon(temperature: forecast3h.temperature, condition: forecast3h.code)
-                                .position(iconPosition)
+                            let forecastTime = Calendar.current.date(byAdding: .hour, value: 3, to: currentTime) ?? currentTime
+                            let iconPosition = getIconPosition(currentTime: forecastTime, radius: diameter * 0.5, center: center)
+                            ForecastIcon(
+                                temperature: forecast3h.temperature, 
+                                condition: forecast3h.code,
+                                isNightTime: isNightTime(for: forecastTime)
+                            )
+                            .position(iconPosition)
                         }
                         
                         // Прогноз через 6 часов
                         if let forecast6h = getForecastData(weather: weather, hours: 6) {
-                            let iconPosition = getIconPosition(currentTime: Calendar.current.date(byAdding: .hour, value: 6, to: currentTime) ?? currentTime, radius: diameter * 0.5, center: center)
-                            ForecastIcon(temperature: forecast6h.temperature, condition: forecast6h.code)
-                                .position(iconPosition)
+                            let forecastTime = Calendar.current.date(byAdding: .hour, value: 6, to: currentTime) ?? currentTime
+                            let iconPosition = getIconPosition(currentTime: forecastTime, radius: diameter * 0.5, center: center)
+                            ForecastIcon(
+                                temperature: forecast6h.temperature, 
+                                condition: forecast6h.code,
+                                isNightTime: isNightTime(for: forecastTime)
+                            )
+                            .position(iconPosition)
                         }
                         
                         // Прогноз через 9 часов
                         if let forecast9h = getForecastData(weather: weather, hours: 9) {
-                            let iconPosition = getIconPosition(currentTime: Calendar.current.date(byAdding: .hour, value: 9, to: currentTime) ?? currentTime, radius: diameter * 0.5, center: center)
-                            ForecastIcon(temperature: forecast9h.temperature, condition: forecast9h.code)
-                                .position(iconPosition)
+                            let forecastTime = Calendar.current.date(byAdding: .hour, value: 9, to: currentTime) ?? currentTime
+                            let iconPosition = getIconPosition(currentTime: forecastTime, radius: diameter * 0.5, center: center)
+                            ForecastIcon(
+                                temperature: forecast9h.temperature, 
+                                condition: forecast9h.code,
+                                isNightTime: isNightTime(for: forecastTime)
+                            )
+                            .position(iconPosition)
                         }
                         
                         // Температура в центре
@@ -220,7 +238,7 @@ struct WeatherView: View {
                         if let sunrise = parseTime(weather.daily.sunrise[0]),
                            let sunset = parseTime(weather.daily.sunset[0]) {
                             
-                            let isNight = isNightTime(sunrise: sunrise, sunset: sunset, current: currentTime)
+                            let isNight = isNightTime(for: currentTime)
                             let targetTime = isNight ? sunrise : sunset
                             let position = getSunPosition(for: targetTime, radius: diameter * 0.5, center: center)
                             

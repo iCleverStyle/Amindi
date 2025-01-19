@@ -3,6 +3,7 @@ import SwiftUI
 struct ForecastIcon: View {
     let temperature: Double
     let condition: Int
+    let isNightTime: Bool
     
     var body: some View {
         ZStack {
@@ -12,8 +13,12 @@ struct ForecastIcon: View {
                 .frame(width: 70, height: 70)
             
             VStack(spacing: 4) {
-                WeatherIcon(condition: condition, isForecast: true)
-                    .font(.system(size: 24))
+                WeatherIcon(
+                    condition: condition,
+                    isForecast: true,
+                    isNightTime: isNightTime
+                )
+                .font(.system(size: 24))
                 Text(String(format: "%+.1f°", temperature))
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.gray)
