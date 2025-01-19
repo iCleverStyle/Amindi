@@ -44,7 +44,7 @@ struct WeatherIcon: View {
         case 1...3: // Переменная облачность
             baseName = isNightTime ? "cloud.moon" : "cloud.sun"
             colors = isNightTime ?
-                (.white, .yellow) :
+                (.gray, .yellow) :
                 (.gray, .yellow)
             
         case 45, 48: // Туман
