@@ -69,21 +69,29 @@ struct ContentView: View {
             }
             
             // Кнопка выбора локации всегда видна поверх
-            VStack {
-                Spacer().frame(height: 50)  // Отступ сверху
-                VStack(spacing: 8) {  // Добавляем VStack для группировки
-                    HStack {
-                        Image(systemName: "location.fill")
-                        Text(selectedLocation.name)
+            GeometryReader { geometry in
+                let isLandscape = geometry.size.width > geometry.size.height
+                
+                if !isLandscape {  // Показываем только в портретной ориентации
+                    VStack {
+                        Spacer().frame(height: 50)  // Отступ сверху
+                        VStack(spacing: 8) {
+                            HStack {
+                                Image(systemName: "location.fill")
+                                Text(selectedLocation.name)
+                            }
+                            .padding(8)
+                            .background(Color(UIColor.systemBackground).opacity(0.8))
+                            .cornerRadius(8)
+                            .onTapGesture {
+                                showLocationSearch = true
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .center)  // Добавляем центрирование
+                        Spacer()
                     }
-                    .padding(8)
-                    .background(Color(UIColor.systemBackground).opacity(0.8))
-                    .cornerRadius(8)
-                    .onTapGesture {
-                        showLocationSearch = true
-                    }
+                    .frame(width: geometry.size.width)  // Задаем ширину равную ширине экрана
                 }
-                Spacer()
             }
         }
         .onReceive(timer) { _ in
@@ -115,18 +123,125 @@ struct ContentView: View {
     }
 }
 
+// Добавим протокол для общих функций
+protocol WeatherViewHelpers {
+    func getAngle(hour: Int, minute: Int) -> Double
+    func getForecastData(weather: WeatherResponse, hours: Int) -> (temperature: Double, code: Int)?
+    func getSunPosition(for date: Date, radius: CGFloat, center: CGPoint) -> CGPoint
+    func parseTime(_ timeString: String) -> Date?
+    func isNightTime(for date: Date) -> Bool
+    func getIconPosition(currentTime: Date, radius: CGFloat, center: CGPoint) -> CGPoint
+    func getBeaufortScale(speed: Double) -> String
+}
+
 struct WeatherView: View {
     @Environment(\.colorScheme) private var colorScheme
     let weather: WeatherResponse?
     let currentTime: Date
     let location: Location
     
-    private func getAngle(hour: Int, minute: Int) -> Double {
+    var body: some View {
+        GeometryReader { geometry in
+            let isLandscape = geometry.size.width > geometry.size.height
+            let diameter = isLandscape ? 
+                min(geometry.size.width * 0.5, geometry.size.height) * 0.8 :
+                min(geometry.size.width, geometry.size.height) * 0.8
+            
+            if isLandscape {
+                // Горизонтальная ориентация
+                HStack(spacing: 0) {
+                    // Левая часть с кругом прогнозов
+                    ZStack {
+                        if let weather = weather {
+                            // Температура
+                            VStack {
+                                Text(String(format: "%+.1f°", weather.current.temperature2m))
+                                    .font(.system(size: diameter * 0.25))
+                                    .foregroundColor(.primary)
+                            }
+                            .position(x: geometry.size.width * 0.25, y: geometry.size.height * 0.5)
+                        }
+                        
+                        // Круг с прогнозами
+                        CircleView(
+                            weather: weather,
+                            currentTime: currentTime,
+                            diameter: diameter,
+                            helpers: self
+                        )
+                            .position(x: geometry.size.width * 0.25, y: geometry.size.height * 0.5)
+                    }
+                    .frame(width: geometry.size.width * 0.5)
+                    
+                    // Правая часть с локацией и ветром
+                    VStack(spacing: 20) {
+                        // Локация
+                        HStack {
+                            Image(systemName: "location.fill")
+                            Text(location.name)
+                        }
+                        .font(.title2)
+                        
+                        if let weather = weather {
+                            // Информация о ветре
+                            WindView(
+                                weather: weather,
+                                colorScheme: colorScheme,
+                                diameter: diameter,
+                                helpers: self
+                            )
+                        }
+                    }
+                    .frame(width: geometry.size.width * 0.5)
+                }
+            } else {
+                // Вертикальная ориентация
+                ZStack {
+                    // Слой с температурой
+                    if let weather = weather {
+                        VStack {
+                            Text(String(format: "%+.1f°", weather.current.temperature2m))
+                                .font(.system(size: diameter * 0.25))
+                                .foregroundColor(.primary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .position(x: geometry.size.width / 2, y: geometry.size.height * 0.5)
+                    }
+                    
+                    // Круг с прогнозами
+                    CircleView(
+                        weather: weather,
+                        currentTime: currentTime,
+                        diameter: diameter,
+                        helpers: self
+                    )
+                    .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+                    
+                    // Информация о ветре
+                    if let weather = weather {
+                        WindView(
+                            weather: weather,
+                            colorScheme: colorScheme,
+                            diameter: diameter,
+                            helpers: self
+                        )
+                        .position(x: geometry.size.width / 2, y: geometry.size.height * 0.9)
+                    }
+                }
+            }
+        }
+        .transition(.opacity)
+        .animation(.easeInOut, value: weather != nil)
+    }
+}
+
+extension WeatherView: WeatherViewHelpers {
+    func getAngle(hour: Int, minute: Int) -> Double {
         let hour12 = hour % 12
         return -Double.pi / 2 + 2 * Double.pi * (Double(hour12) + Double(minute) / 60) / 12
     }
     
-    private func getForecastData(weather: WeatherResponse, hours: Int) -> (temperature: Double, code: Int)? {
+    func getForecastData(weather: WeatherResponse, hours: Int) -> (temperature: Double, code: Int)? {
         let calendar = Calendar.current
         let currentHour = calendar.component(.hour, from: currentTime)
         
@@ -156,7 +271,7 @@ struct WeatherView: View {
         )
     }
     
-    private func getSunPosition(for date: Date, radius: CGFloat, center: CGPoint) -> CGPoint {
+    func getSunPosition(for date: Date, radius: CGFloat, center: CGPoint) -> CGPoint {
         let calendar = Calendar.current
         let hour = calendar.component(.hour, from: date)
         let minute = calendar.component(.minute, from: date)
@@ -168,14 +283,14 @@ struct WeatherView: View {
         return CGPoint(x: x, y: y)
     }
     
-    private func parseTime(_ timeString: String) -> Date? {
+    func parseTime(_ timeString: String) -> Date? {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd'T'HH:mm"
         formatter.timeZone = TimeZone.current
         return formatter.date(from: timeString)
     }
     
-    private func isNightTime(for date: Date) -> Bool {
+    func isNightTime(for date: Date) -> Bool {
         if let weather = weather,
            let sunrise = parseTime(weather.daily.sunrise[0]),
            let sunset = parseTime(weather.daily.sunset[0]) {
@@ -184,169 +299,7 @@ struct WeatherView: View {
         return false
     }
     
-    var body: some View {
-        GeometryReader { geometry in
-            let diameter = min(geometry.size.width, geometry.size.height) * 0.8
-            let center = CGPoint(x: geometry.size.width / 2, y: geometry.size.height / 2)
-            
-            ZStack {
-                // Слой с температурой
-                if let weather = weather {
-                    VStack {
-                        Text(String(format: "%+.1f°", weather.current.temperature2m))
-                            .font(.system(size: diameter * 0.25))
-                            .foregroundColor(.primary)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .position(x: center.x, y: geometry.size.height * 0.5)  // Позиционируем на 1/4 высоты экрана
-                }
-                
-                VStack {
-                    ZStack {
-                        // Круг
-                        Circle()
-                            .stroke(Color.gray.opacity(0.3), lineWidth: 2)
-                            .frame(width: diameter, height: diameter)
-                        
-                        // Иконка погоды на круге
-                        if let weather = weather {
-                            let iconPosition = getIconPosition(currentTime: currentTime, radius: diameter * 0.5, center: center)
-                            
-                            ZStack {
-                                Circle()
-                                    .fill(Color(UIColor.systemBackground))
-                                    .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 2)
-                                    .overlay(
-                                        Circle()
-                                            .stroke(Color.blue.opacity(0.3), lineWidth: 3)
-                                    )
-                                    .frame(width: 90, height: 90)
-                                
-                                ZStack {
-                                    
-                                    WeatherIcon(condition: weather.current.weatherCode, isNightTime: isNightTime(for: currentTime))
-                                        .font(.system(size: 32))
-//                                        Text(String(format: "%+.1f°", weather.current.temperature2m))
-//                                                .font(.system(size: 14, weight: .medium))
-//                                                .padding(.top, 60)
-                                    
-                                }
-                            }
-                            .position(iconPosition)
-                            
-                            // Прогноз через 3 часа
-                            if let forecast3h = getForecastData(weather: weather, hours: 3) {
-                                let forecastTime = Calendar.current.date(byAdding: .hour, value: 3, to: currentTime) ?? currentTime
-                                let iconPosition = getIconPosition(currentTime: forecastTime, radius: diameter * 0.5, center: center)
-                                ForecastIcon(
-                                    temperature: forecast3h.temperature, 
-                                    condition: forecast3h.code,
-                                    isNightTime: isNightTime(for: forecastTime)
-                                )
-                                .position(iconPosition)
-                            }
-                            
-                            // Прогноз через 6 часов
-                            if let forecast6h = getForecastData(weather: weather, hours: 6) {
-                                let forecastTime = Calendar.current.date(byAdding: .hour, value: 6, to: currentTime) ?? currentTime
-                                let iconPosition = getIconPosition(currentTime: forecastTime, radius: diameter * 0.5, center: center)
-                                ForecastIcon(
-                                    temperature: forecast6h.temperature, 
-                                    condition: forecast6h.code,
-                                    isNightTime: isNightTime(for: forecastTime)
-                                )
-                                .position(iconPosition)
-                            }
-                            
-                            // Прогноз через 9 часов
-                            if let forecast9h = getForecastData(weather: weather, hours: 9) {
-                                let forecastTime = Calendar.current.date(byAdding: .hour, value: 9, to: currentTime) ?? currentTime
-                                let iconPosition = getIconPosition(currentTime: forecastTime, radius: diameter * 0.5, center: center)
-                                ForecastIcon(
-                                    temperature: forecast9h.temperature, 
-                                    condition: forecast9h.code,
-                                    isNightTime: isNightTime(for: forecastTime)
-                                )
-                                .position(iconPosition)
-                            }
-                            
-                            // Индикатор восхода/захода солнца
-                            if let sunrise = parseTime(weather.daily.sunrise[0]),
-                               let sunset = parseTime(weather.daily.sunset[0]) {
-                                
-                                let isNight = isNightTime(for: currentTime)
-                                let targetTime = isNight ? sunrise : sunset
-                                let position = getSunPosition(for: targetTime, radius: diameter * 0.5, center: center)
-                                
-                                ZStack {
-                                    Circle()
-                                        .fill(Color(UIColor.systemBackground))
-                                        .frame(width: 40, height: 40)
-                                        .shadow(color: .black.opacity(0.1), radius: 2)
-                                    
-                                    Image(systemName: isNight ? "sunrise.fill" : "sunset.fill")
-                                        .symbolRenderingMode(.palette)
-                                        .foregroundStyle(.orange, .yellow)
-                                        .font(.system(size: 20))
-                                }
-                                .position(position)
-                                .zIndex(1)
-                            }
-                        }
-                        
-                        VStack {
-                            Spacer()
-                            Spacer()
-                            Spacer()
-                            Spacer()
-                            // Информация о ветре
-                            if let weather = weather {
-                                VStack(spacing: 10) {
-                                    ZStack {
-                                        // Фоновая карта
-                                        
-                                        Image("Georgia Vector Map")
-                                            .resizable()
-                                            .renderingMode(.template)
-                                            .scaledToFit()
-                                            .frame(width: diameter * 0.95)
-                                            .foregroundStyle(Color(colorScheme == .dark ? 
-                                                .white.opacity(1) :
-                                                .black.opacity(0.5)))
-                                            .padding(.bottom, diameter * 0.05)
-                                        
-                                        VStack(spacing: 10) {
-                                            // Флюгер
-                                            Image(systemName: "arrowshape.up")
-                                                .font(.system(size: 32))
-                                                .rotationEffect(.degrees(weather.current.windDirection10m))
-                                            
-                                            HStack {
-                                                Image(systemName: "wind")
-                                                    .rotationEffect(.degrees(weather.current.windDirection10m - 90))
-                                                Text("\(String(format: "%.1f", weather.current.windSpeed10m)) м/с")
-                                            }
-                                            .font(.title2)
-                                            
-                                            Text(getBeaufortScale(speed: weather.current.windSpeed10m))
-                                                .font(.caption)
-                                        }
-                                        .padding(.top, 60)
-                                    }
-                                    .padding(.top, 20)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            .position(center)
-        }
-        .transition(.opacity)
-        .animation(.easeInOut, value: weather != nil)
-    }
-    
-    private func getIconPosition(currentTime: Date, radius: CGFloat, center: CGPoint) -> CGPoint {
+    func getIconPosition(currentTime: Date, radius: CGFloat, center: CGPoint) -> CGPoint {
         let calendar = Calendar.current
         let hour = calendar.component(.hour, from: currentTime)
         let minute = calendar.component(.minute, from: currentTime)
@@ -359,7 +312,7 @@ struct WeatherView: View {
         return CGPoint(x: x, y: y)
     }
     
-    private func getBeaufortScale(speed: Double) -> String {
+    func getBeaufortScale(speed: Double) -> String {
         switch speed {
         case 0...0.59: return "Штиль"
         case 0.6...1.59: return "Тихий"
@@ -374,6 +327,152 @@ struct WeatherView: View {
         case 24.5...28.49: return "Сильный шторм"
         case 28.5...32.69: return "Жестокий шторм"
         default: return "Ураган"
+        }
+    }
+}
+
+// Обновим CircleView
+private struct CircleView: View {
+    let weather: WeatherResponse?
+    let currentTime: Date
+    let diameter: CGFloat
+    let helpers: WeatherViewHelpers
+    
+    var body: some View {
+        GeometryReader { geometry in
+            let center = CGPoint(x: geometry.size.width / 2, y: geometry.size.height / 2)
+            
+            ZStack {
+                // Основной круг
+                Circle()
+                    .stroke(Color.gray.opacity(0.3), lineWidth: 2)
+                    .frame(width: diameter, height: diameter)
+                    .position(center)
+                
+                // Иконка погоды на круге
+                if let weather = weather {
+                    let iconPosition = helpers.getIconPosition(currentTime: currentTime, radius: diameter * 0.5, center: center)
+                    
+                    ZStack {
+                        Circle()
+                            .fill(Color(UIColor.systemBackground))
+                            .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 2)
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.blue.opacity(0.3), lineWidth: 3)
+                            )
+                            .frame(width: 90, height: 90)
+                        
+                        WeatherIcon(condition: weather.current.weatherCode, isNightTime: helpers.isNightTime(for: currentTime))
+                            .font(.system(size: 32))
+                    }
+                    .position(iconPosition)
+                    
+                    // Прогноз через 3 часа
+                    if let forecast3h = helpers.getForecastData(weather: weather, hours: 3) {
+                        let forecastTime = Calendar.current.date(byAdding: .hour, value: 3, to: currentTime) ?? currentTime
+                        let iconPosition = helpers.getIconPosition(currentTime: forecastTime, radius: diameter * 0.5, center: center)
+                        ForecastIcon(
+                            temperature: forecast3h.temperature, 
+                            condition: forecast3h.code,
+                            isNightTime: helpers.isNightTime(for: forecastTime)
+                        )
+                        .position(iconPosition)
+                    }
+                    
+                    // Прогноз через 6 часов
+                    if let forecast6h = helpers.getForecastData(weather: weather, hours: 6) {
+                        let forecastTime = Calendar.current.date(byAdding: .hour, value: 6, to: currentTime) ?? currentTime
+                        let iconPosition = helpers.getIconPosition(currentTime: forecastTime, radius: diameter * 0.5, center: center)
+                        ForecastIcon(
+                            temperature: forecast6h.temperature, 
+                            condition: forecast6h.code,
+                            isNightTime: helpers.isNightTime(for: forecastTime)
+                        )
+                        .position(iconPosition)
+                    }
+                    
+                    // Прогноз через 9 часов
+                    if let forecast9h = helpers.getForecastData(weather: weather, hours: 9) {
+                        let forecastTime = Calendar.current.date(byAdding: .hour, value: 9, to: currentTime) ?? currentTime
+                        let iconPosition = helpers.getIconPosition(currentTime: forecastTime, radius: diameter * 0.5, center: center)
+                        ForecastIcon(
+                            temperature: forecast9h.temperature, 
+                            condition: forecast9h.code,
+                            isNightTime: helpers.isNightTime(for: forecastTime)
+                        )
+                        .position(iconPosition)
+                    }
+                    
+                    // Индикатор восхода/захода солнца
+                    if let sunrise = helpers.parseTime(weather.daily.sunrise[0]),
+                       let sunset = helpers.parseTime(weather.daily.sunset[0]) {
+                        
+                        let isNight = helpers.isNightTime(for: currentTime)
+                        let targetTime = isNight ? sunrise : sunset
+                        let position = helpers.getSunPosition(for: targetTime, radius: diameter * 0.5, center: center)
+                        
+                        ZStack {
+                            Circle()
+                                .fill(Color(UIColor.systemBackground))
+                                .frame(width: 40, height: 40)
+                                .shadow(color: .black.opacity(0.1), radius: 2)
+                            
+                            Image(systemName: isNight ? "sunrise.fill" : "sunset.fill")
+                                .symbolRenderingMode(.palette)
+                                .foregroundStyle(.orange, .yellow)
+                                .font(.system(size: 20))
+                        }
+                        .position(position)
+                        .zIndex(1)
+                    }
+                }
+            }
+            .frame(width: geometry.size.width, height: geometry.size.height)
+        }
+    }
+}
+
+// Обновим WindView
+private struct WindView: View {
+    let weather: WeatherResponse
+    let colorScheme: ColorScheme
+    let diameter: CGFloat
+    let helpers: WeatherViewHelpers
+    
+    var body: some View {
+        VStack(spacing: 10) {
+            ZStack {
+                // Фоновая карта
+                
+                Image("Georgia Vector Map")
+                    .resizable()
+                    .renderingMode(.template)
+                    .scaledToFit()
+                    .frame(width: diameter * 0.95)
+                    .foregroundStyle(Color(colorScheme == .dark ? 
+                        .white.opacity(1) :
+                        .black.opacity(0.5)))
+                    .padding(.bottom, diameter * 0.05)
+                
+                VStack(spacing: 10) {
+                    // Флюгер
+                    Image(systemName: "arrowshape.up")
+                        .font(.system(size: 32))
+                        .rotationEffect(.degrees(weather.current.windDirection10m))
+                    
+                    HStack {
+                        Image(systemName: "wind")
+                            .rotationEffect(.degrees(weather.current.windDirection10m - 90))
+                        Text("\(String(format: "%.1f", weather.current.windSpeed10m)) м/с")
+                    }
+                    .font(.title2)
+                    
+                    Text(helpers.getBeaufortScale(speed: weather.current.windSpeed10m))
+                        .font(.caption)
+                }
+                .padding(.top, 60)
+            }
         }
     }
 }
