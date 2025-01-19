@@ -410,21 +410,32 @@ private struct CircleView: View {
                         
                         let isNight = helpers.isNightTime(for: currentTime)
                         let targetTime = isNight ? sunrise : sunset
-                        let position = helpers.getSunPosition(for: targetTime, radius: diameter * 0.5, center: center)
                         
-                        ZStack {
-                            Circle()
-                                .fill(Color(UIColor.systemBackground))
-                                .frame(width: 40, height: 40)
-                                .shadow(color: .black.opacity(0.1), radius: 2)
+                        // Добавляем проверку разницы во времени
+                        let hoursDifference = Calendar.current.dateComponents(
+                            [.hour],
+                            from: currentTime,
+                            to: targetTime
+                        ).hour ?? 0
+                        
+                        // Показываем индикатор только если до события меньше 11 часов
+                        if abs(hoursDifference) < 11 {
+                            let position = helpers.getSunPosition(for: targetTime, radius: diameter * 0.5, center: center)
                             
-                            Image(systemName: isNight ? "sunrise.fill" : "sunset.fill")
-                                .symbolRenderingMode(.palette)
-                                .foregroundStyle(.orange, .yellow)
-                                .font(.system(size: 20))
+                            ZStack {
+                                Circle()
+                                    .fill(Color(UIColor.systemBackground))
+                                    .frame(width: 40, height: 40)
+                                    .shadow(color: .black.opacity(0.1), radius: 2)
+                                
+                                Image(systemName: isNight ? "sunrise.fill" : "sunset.fill")
+                                    .symbolRenderingMode(.palette)
+                                    .foregroundStyle(.orange, .yellow)
+                                    .font(.system(size: 20))
+                            }
+                            .position(position)
+                            .zIndex(1)
                         }
-                        .position(position)
-                        .zIndex(1)
                     }
                 }
             }
