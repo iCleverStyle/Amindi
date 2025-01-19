@@ -14,6 +14,8 @@ struct ContentView: View {
     @State private var isLoading = false
     @State private var showWeather = false
     @State private var rotation = 0.0
+    @State private var selectedLocation: Location = UserDefaults.standard.loadLocation() ?? .kutaisi
+    @State private var showLocationSearch = false
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     var body: some View {
@@ -25,7 +27,11 @@ struct ContentView: View {
                     .scaleEffect(2)
                     .tint(.blue)
             } else if showWeather {
-                WeatherView(weather: weatherService.currentWeather, currentTime: currentTime)
+                WeatherView(
+                    weather: weatherService.currentWeather, 
+                    currentTime: currentTime,
+                    location: selectedLocation
+                )
             } else {
                 Button(action: fetchWeatherWithAnimation) {
                     RoundedRectangle(cornerRadius: 20)
@@ -37,7 +43,7 @@ struct ContentView: View {
                                     Text("Проверить погоду")
                                         .foregroundColor(.gray)
                                         .font(.subheadline)
-                                    Text("в Кутаиси")
+                                    Text("в \(selectedLocation.name)")
                                         .font(.system(size: 34, weight: .medium))
                                         .foregroundColor(.primary)
                                 }
@@ -61,18 +67,41 @@ struct ContentView: View {
                 }
                 .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
             }
+            
+            // Кнопка выбора локации всегда видна поверх
+            VStack {
+                Spacer().frame(height: 50)  // Отступ сверху
+                HStack {
+                    Image(systemName: "location.fill")
+                    Text(selectedLocation.name)
+                }
+                .padding(8)
+                .background(Color(UIColor.systemBackground).opacity(0.8))
+                .cornerRadius(8)
+                .onTapGesture {
+                    showLocationSearch = true
+                }
+                Spacer()
+            }
         }
         .onReceive(timer) { _ in
             currentTime = Date()
+        }
+        .sheet(isPresented: $showLocationSearch) {
+            LocationSearchView(
+                selectedLocation: $selectedLocation,
+                onLocationSelected: fetchWeatherWithAnimation
+            )
         }
     }
     
     private func fetchWeatherWithAnimation() {
         isLoading = true
+        showWeather = false  // Сбрасываем текущее отображение
         
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(1))
-            await weatherService.fetchWeather()
+            await weatherService.fetchWeather(for: selectedLocation)
             isLoading = false
             showWeather = true
             
@@ -88,6 +117,7 @@ struct WeatherView: View {
     @Environment(\.colorScheme) private var colorScheme
     let weather: WeatherResponse?
     let currentTime: Date
+    let location: Location
     
     private func getAngle(hour: Int, minute: Int) -> Double {
         let hour12 = hour % 12
@@ -139,10 +169,8 @@ struct WeatherView: View {
     private func parseTime(_ timeString: String) -> Date? {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd'T'HH:mm"
-        formatter.timeZone = TimeZone.current // или TimeZone(identifier: "Asia/Tbilisi")
-        let date = formatter.date(from: timeString)
-        print("Parsing time string: \(timeString), result: \(String(describing: date))")
-        return date
+        formatter.timeZone = TimeZone.current
+        return formatter.date(from: timeString)
     }
     
     private func isNightTime(for date: Date) -> Bool {
@@ -260,11 +288,6 @@ struct WeatherView: View {
                     
                     VStack {
                         Spacer()
-                        HStack {
-                            Image(systemName: "location.fill")
-                            Text("Кутаиси")
-                        }
-                        Spacer()
                         Spacer()
                         Spacer()
                         Spacer()
@@ -329,18 +352,18 @@ struct WeatherView: View {
     
     private func getBeaufortScale(speed: Double) -> String {
         switch speed {
-        case 0...0.5: return "Штиль"
-        case 0.6...1.5: return "Тихий"
-        case 1.6...3.2: return "Лёгкий"
-        case 3.3...5.4: return "Слабый"
-        case 5.5...7.9: return "Умеренный"
-        case 8.0...10.7: return "Свежий"
-        case 10.8...13.8: return "Сильный"
-        case 13.9...17.1: return "Крепкий"
-        case 17.2...20.7: return "Очень крепкий"
-        case 20.8...24.4: return "Шторм"
-        case 24.5...28.4: return "Сильный шторм"
-        case 28.5...32.6: return "Жестокий шторм"
+        case 0...0.59: return "Штиль"
+        case 0.6...1.59: return "Тихий"
+        case 1.6...3.29: return "Лёгкий"
+        case 3.3...5.49: return "Слабый"
+        case 5.5...7.99: return "Умеренный"
+        case 8.0...10.79: return "Свежий"
+        case 10.8...13.89: return "Сильный"
+        case 13.9...17.19: return "Крепкий"
+        case 17.2...20.79: return "Очень крепкий"
+        case 20.8...24.49: return "Шторм"
+        case 24.5...28.49: return "Сильный шторм"
+        case 28.5...32.69: return "Жестокий шторм"
         default: return "Ураган"
         }
     }

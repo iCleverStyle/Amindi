@@ -45,7 +45,7 @@ struct WeatherIcon: View {
             baseName = isNightTime ? "cloud.moon" : "cloud.sun"
             colors = isNightTime ?
                 (.white, .yellow) :
-                (.white, .yellow)
+                (.gray, .yellow)
             
         case 45, 48: // Туман
             baseName = "cloud.fog"
