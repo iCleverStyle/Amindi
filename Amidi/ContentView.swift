@@ -198,7 +198,7 @@ struct WeatherView: View {
                             .foregroundColor(.primary)
                     }
                     .frame(maxWidth: .infinity)
-                    .position(x: center.x, y: geometry.size.height * 0.2)  // Позиционируем на 1/4 высоты экрана
+                    .position(x: center.x, y: geometry.size.height * 0.5)  // Позиционируем на 1/4 высоты экрана
                 }
                 
                 VStack {
