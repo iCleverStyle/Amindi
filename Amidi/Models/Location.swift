@@ -21,12 +21,29 @@ struct Location: Codable, Identifiable, Equatable {
         lhs.longitude == rhs.longitude
     }
     
-    // Константы
+    // Константы популярных локаций
     static let kutaisi = Location(
         name: "Кутаиси",
         latitude: 42.2679,
         longitude: 42.6946
     )
+    
+    static let tbilisi = Location(
+        name: "Тбилиси",
+        latitude: 41.7151,
+        longitude: 44.8271
+    )
+    
+    static let batumi = Location(
+        name: "Батуми",
+        latitude: 41.6459,
+        longitude: 41.6459
+    )
+    
+    // Вычисляемое свойство для формирования ключа кэша
+    var cacheKey: String {
+        return "\(latitude),\(longitude)"
+    }
 }
 
 // Расширение для кодирования/декодирования

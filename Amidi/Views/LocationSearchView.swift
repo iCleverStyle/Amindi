@@ -11,22 +11,37 @@ struct LocationSearchView: View {
     @State private var isSearching = false
     @State private var error: Error?
     
+    // Добавляем предопределенные локации
+    private let predefinedLocations = [
+        Location.kutaisi,
+        Location.tbilisi,
+        Location.batumi
+    ]
+    
+    // Добавляем debounce для поиска
+    @State private var searchTask: Task<Void, Never>?
+    
     var body: some View {
         NavigationView {
             List {
-                if isSearching {
-                    ProgressView()
-                        .frame(maxWidth: .infinity, alignment: .center)
-                } else {
-                    ForEach(locations) { location in
-                        Button {
-                            selectedLocation = location
-                            UserDefaults.standard.saveLocation(location)
-                            dismiss()
-                            onLocationSelected()
-                        } label: {
-                            Text(location.name)
-                                .foregroundColor(.primary)
+                // Секция с предопределенными локациями
+                Section("Популярные города") {
+                    ForEach(predefinedLocations) { location in
+                        locationButton(for: location)
+                    }
+                }
+                
+                // Секция с результатами поиска
+                Section("Результаты поиска") {
+                    if isSearching {
+                        ProgressView()
+                            .frame(maxWidth: .infinity, alignment: .center)
+                    } else if locations.isEmpty && !searchText.isEmpty {
+                        Text("Ничего не найдено")
+                            .foregroundColor(.gray)
+                    } else {
+                        ForEach(locations) { location in
+                            locationButton(for: location)
                         }
                     }
                 }
@@ -35,19 +50,23 @@ struct LocationSearchView: View {
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $searchText, prompt: "Введите название города")
             .onChange(of: searchText) { oldValue, newValue in
+                // Отменяем предыдущий поисковый запрос
+                searchTask?.cancel()
+                
                 guard !newValue.isEmpty else {
                     locations = []
                     return
                 }
                 
-                Task {
-                    isSearching = true
-                    do {
-                        locations = try await locationService.searchLocations(query: newValue)
-                    } catch {
-                        self.error = error
+                // Создаем новый поисковый запрос с задержкой
+                searchTask = Task {
+                    // Добавляем задержку для debounce
+                    try? await Task.sleep(for: .seconds(0.5))
+                    
+                    // Проверяем, не был ли запрос отменен
+                    if !Task.isCancelled {
+                        await performSearch(query: newValue)
                     }
-                    isSearching = false
                 }
             }
             .toolbar {
@@ -58,5 +77,29 @@ struct LocationSearchView: View {
                 }
             }
         }
+    }
+    
+    // Выделяем кнопку локации в отдельную функцию
+    private func locationButton(for location: Location) -> some View {
+        Button {
+            selectedLocation = location
+            UserDefaults.standard.saveLocation(location)
+            dismiss()
+            onLocationSelected()
+        } label: {
+            Text(location.name)
+                .foregroundColor(.primary)
+        }
+    }
+    
+    // Выделяем поиск в отдельную функцию
+    private func performSearch(query: String) async {
+        isSearching = true
+        do {
+            locations = try await locationService.searchLocations(query: query)
+        } catch {
+            self.error = error
+        }
+        isSearching = false
     }
 } 

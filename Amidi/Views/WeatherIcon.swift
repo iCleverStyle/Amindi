@@ -5,6 +5,9 @@ struct WeatherIcon: View {
     var isForecast: Bool = false
     let isNightTime: Bool
     
+    // Кэш для иконок погоды
+    private static var symbolCache: [String: (symbol: String, colors: (primary: Color, secondary: Color))] = [:]
+    
     init(
         condition: Int,
         isForecast: Bool = false,
@@ -31,6 +34,24 @@ struct WeatherIcon: View {
     }
     
     private func getWeatherSymbol(condition: Int) -> (symbol: String, colors: (primary: Color, secondary: Color)) {
+        // Создаем ключ для кэша
+        let cacheKey = "\(condition)_\(isNightTime)_\(isForecast)"
+        
+        // Проверяем кэш
+        if let cachedSymbol = Self.symbolCache[cacheKey] {
+            return cachedSymbol
+        }
+        
+        // Если в кэше нет, вычисляем
+        let result = computeWeatherSymbol(condition: condition)
+        
+        // Сохраняем в кэш
+        Self.symbolCache[cacheKey] = result
+        
+        return result
+    }
+    
+    private func computeWeatherSymbol(condition: Int) -> (symbol: String, colors: (primary: Color, secondary: Color)) {
         let baseName: String
         let colors: (primary: Color, secondary: Color)
         
