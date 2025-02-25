@@ -73,41 +73,71 @@ struct CircleView: View {
                     }
                     
                     // Индикатор восхода/захода солнца
-                    if let sunrise = helpers.parseTime(weather.daily.sunrise[0]),
-                       let sunset = helpers.parseTime(weather.daily.sunset[0]) {
-                        
-                        let isNight = helpers.isNightTime(for: currentTime)
-                        let targetTime = isNight ? sunrise : sunset
-                        
-                        // Добавляем проверку разницы во времени
-                        let hoursDifference = Calendar.current.dateComponents(
-                            [.hour],
-                            from: currentTime,
-                            to: targetTime
-                        ).hour ?? 0
-                        
-                        // Показываем индикатор только если до события меньше 11 часов
-                        if abs(hoursDifference) < 11 {
-                            let position = helpers.getSunPosition(for: targetTime, radius: diameter * 0.5, center: center)
-                            
-                            ZStack {
-                                Circle()
-                                    .fill(Color(UIColor.systemBackground))
-                                    .frame(width: 40, height: 40)
-                                    .shadow(color: .black.opacity(0.1), radius: 2)
-                                
-                                Image(systemName: isNight ? "sunrise.fill" : "sunset.fill")
-                                    .symbolRenderingMode(.palette)
-                                    .foregroundStyle(.orange, .yellow)
-                                    .font(.system(size: 20))
-                            }
-                            .position(position)
-                            .zIndex(1)
-                        }
-                    }
+                    sunriseOrSunsetIndicator(weather: weather, currentTime: currentTime, diameter: diameter, center: center, helpers: helpers)
                 }
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
+        }
+    }
+    
+    // Вспомогательная функция для вычисления разницы во времени
+    private func calculateHoursDifference(from currentTime: Date, to targetTime: Date) -> Int {
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.hour, .minute], from: currentTime, to: targetTime)
+        var hoursDifference = components.hour ?? 0
+        
+        // Если разница отрицательная и большая, значит переход через полночь
+        if hoursDifference < -12 {
+            hoursDifference += 24
+        } else if hoursDifference > 12 {
+            hoursDifference -= 24
+        }
+        
+        return hoursDifference
+    }
+    
+    // Выделяем логику индикатора восхода/захода солнца в отдельную функцию
+    @ViewBuilder
+    private func sunriseOrSunsetIndicator(weather: WeatherResponse, currentTime: Date, diameter: CGFloat, center: CGPoint, helpers: WeatherViewHelpers) -> some View {
+        if let sunrise = helpers.parseTime(weather.daily.sunrise[0]),
+           let sunset = helpers.parseTime(weather.daily.sunset[0]) {
+            
+            let isNight = helpers.isNightTime(for: currentTime)
+            let targetTime = isNight ? sunrise : sunset
+            
+            // Вычисляем разницу во времени с учетом перехода через полночь
+            let hoursDifference = calculateHoursDifference(from: currentTime, to: targetTime)
+            
+            // Показываем индикатор только если до события меньше 11 часов
+            if abs(hoursDifference) < 11 {
+                let position = helpers.getSunPosition(for: targetTime, radius: diameter * 0.5, center: center)
+                
+                SunIndicator(isNight: isNight)
+                    .position(position)
+                    .zIndex(1)
+            } else {
+                Color.clear.frame(width: 0, height: 0)
+            }
+        } else {
+            Color.clear.frame(width: 0, height: 0)
+        }
+    }
+}
+
+// Выносим индикатор в отдельное представление
+struct SunIndicator: View {
+    let isNight: Bool
+    
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(Color(UIColor.systemBackground))
+                .frame(width: 40, height: 40)
+                .shadow(color: .black.opacity(0.1), radius: 2)
+            
+            Image(systemName: isNight ? "sunrise.fill" : "sunset.fill")
+                .foregroundColor(.orange)
+                .font(.system(size: 20))
         }
     }
 } 
